@@ -1,0 +1,153 @@
+syntax = "proto3";
+option go_package = "examplepb";  // 编译后的golang包名
+package example.everything; // proto包名
+
+import "google/protobuf/any.proto";
+import "google/protobuf/descriptor.proto";
+//import "other.proto";
+
+// 普通的message
+message SearchRequest {
+    string query = 1;
+    int32 page_number = 2;
+    int32 result_per_page = 3;
+}
+// 保留字段
+message ReservedMessage {
+    reserved 2, 15, 9 to 11;
+    reserved "foo", "bar";
+    // string abc = 2;  编译报错
+    // string foo = 3;// 编译报错
+}
+// 枚举 enum
+enum Status {
+    STATUS_UNSPECIFIED = 0;
+    STATUS_OK  = 1;
+    STATUS_FAIL= 2;
+    STATUS_UNKNOWN = -1; // 不推荐有负数
+}
+// 保留枚举
+enum ReservedEnum {
+    reserved 2, 15, 9 to 11, 40 to max;
+    reserved "FOO", "BAR";
+    // FOO = 0; 编译报错
+    F = 0;
+}
+
+
+// nested 嵌套message
+message SearchResponse {
+    message Result {
+        string url = 1 ;
+        string title = 2;
+    }
+    enum Status {
+        UNSPECIFIED = 0;
+        OK  = 1;
+        FAIL= 2;
+    }
+    Result result = 1;
+    Status status = 2;
+}
+message OtherResponse {
+    SearchResponse.Result result = 1;
+    SearchResponse.Status status = 2;
+}
+
+// repeated
+message RepeatedMessage {
+    repeated SearchRequest requests = 1;
+    repeated Status status = 2;
+    repeated int32 number = 3;
+}
+
+// any
+message AnyMessage {
+    string message = 1;
+    google.protobuf.Any details = 2;
+}
+
+// one of
+message OneOfMessage {
+    oneof test_oneof {
+        string m1 = 1;
+        int32 m2 =2;
+    }
+}
+
+// map
+message MapMessage{
+    map<string, string> message = 1;
+    map<string, SearchRequest> request = 2;
+}
+
+
+// service
+service SearchService {
+    rpc Search (SearchRequest) returns (SearchResponse);
+}
+
+// extensions and options
+message extObj {
+    string foo_string= 1;
+    int64 bar_int=2;
+}
+// field options
+extend google.protobuf.FieldOptions {
+    string field_opt_string = 1001;
+    extObj field_opt_obj = 1002;
+}
+message FieldOption {
+    // 自定义的option
+    string foo= 1 [(example.everything.field_opt_string) = "abc",(example.everything.field_opt_obj) = {
+        foo_string: "foo"
+        bar_int:1
+    }];
+    // protobuf内置的option
+    string bar = 2 [deprecated = true];
+}
+
+// message options
+extend google.protobuf.MessageOptions {
+    string msg_opt_string = 1001;
+    extObj msg_opt_obj = 1002;
+}
+message MessageOption {
+    option (example.everything.msg_opt_string) = "Hello world!";
+    option (example.everything.msg_opt_obj) = {
+        foo_string: "foo"
+        bar_int:1
+    };
+    string foo = 1;
+}
+
+// file options
+extend google.protobuf.FileOptions {
+    string file_opt_string = 1001;
+    extObj file_opt_obj = 1002;
+}
+option (example.everything.file_opt_string) = "file_options";
+option (example.everything.file_opt_obj) = {
+    foo_string: "foo"
+    bar_int:1
+};
+
+// service & method options
+extend google.protobuf.ServiceOptions {
+    string srv_opt_string = 1001;
+    extObj srv_opt_obj = 1002;
+}
+extend google.protobuf.MethodOptions {
+    string method_opt_string = 1001;
+    extObj method_opt_obj = 1002;
+}
+service ServiceOption {
+    option (example.everything.srv_opt_string) = "foo";
+    rpc Search (SearchRequest) returns (SearchResponse) {
+        option (example.everything.method_opt_string) = "foo";
+        option (example.everything.method_opt_obj) = {
+            foo_string: "foo"
+            bar_int: 1
+        };
+    };
+}
